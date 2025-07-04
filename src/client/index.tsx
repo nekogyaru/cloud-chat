@@ -67,7 +67,7 @@ function App() {
           
           // Show browser notification for private messages from others
           if (message.user !== currentUser?.displayName && notificationPermission === "granted") {
-            new Notification(`Private message from ${message.user}`, {
+            showNotification(`Private message from ${message.user}`, {
               body: message.content,
               icon: "/favicon.ico",
             });
@@ -256,21 +256,140 @@ function App() {
     }
   }, [currentUser, sessionId]);
 
+  // Helper function to safely show notifications
+  const showNotification = (title: string, options?: NotificationOptions) => {
+    if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
+      try {
+        new Notification(title, options);
+      } catch (error) {
+        console.error("Failed to show notification:", error);
+      }
+    }
+  };
+
+  // Push notification subscription state
+  const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
+  const [isPushSupported, setIsPushSupported] = useState(false);
+
+  // Check if push notifications are supported
+  useEffect(() => {
+    const checkPushSupport = async () => {
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        setIsPushSupported(true);
+        
+        // Check if we already have a subscription
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        setPushSubscription(subscription);
+      }
+    };
+    
+    checkPushSupport();
+  }, []);
+
+  // Subscribe to push notifications
+  const subscribeToPushNotifications = async () => {
+    if (!isPushSupported) {
+      alert('Push notifications are not supported in this browser');
+      return;
+    }
+
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      
+      // Request notification permission first
+      if (Notification.permission !== 'granted') {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          alert('Notification permission is required for push notifications');
+          return;
+        }
+      }
+
+      // Subscribe to push notifications
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array('YOUR_VAPID_PUBLIC_KEY') // We'll need to generate this
+      });
+
+      setPushSubscription(subscription);
+      
+      // Send subscription to server
+      if (socket && currentUser) {
+        socket.send(JSON.stringify({
+          type: "push_subscription",
+          subscription: subscription,
+          sessionId: sessionId,
+        }));
+      }
+
+      console.log('Push subscription successful:', subscription);
+    } catch (error) {
+      console.error('Failed to subscribe to push notifications:', error);
+      alert('Failed to subscribe to push notifications');
+    }
+  };
+
+  // Unsubscribe from push notifications
+  const unsubscribeFromPushNotifications = async () => {
+    if (pushSubscription) {
+      try {
+        await pushSubscription.unsubscribe();
+        setPushSubscription(null);
+        
+        // Notify server
+        if (socket && currentUser) {
+          socket.send(JSON.stringify({
+            type: "push_unsubscription",
+            sessionId: sessionId,
+          }));
+        }
+        
+        console.log('Push unsubscription successful');
+      } catch (error) {
+        console.error('Failed to unsubscribe from push notifications:', error);
+      }
+    }
+  };
+
+  // Helper function to convert VAPID key
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
   // Request notification permission on first user interaction
   const requestNotificationPermission = async () => {
+    if (typeof Notification === 'undefined') {
+      console.log("Notifications not supported in this browser");
+      setNotificationPermission("denied");
+      return;
+    }
+
     if (Notification.permission === "default") {
       try {
         const permission = await Notification.requestPermission();
         setNotificationPermission(permission);
         if (permission === "granted") {
           // Show a test notification to confirm it's working
-          new Notification("Notifications enabled!", {
+          showNotification("Notifications enabled!", {
             body: "You'll now receive notifications for private messages.",
             icon: "/favicon.ico",
           });
         }
       } catch (error) {
         console.error("Failed to request notification permission:", error);
+        setNotificationPermission("denied");
       }
     }
   };
@@ -582,15 +701,17 @@ function App() {
             <div className="notification-settings">
               <div className="notification-status">
                 <span className="notification-icon">
-                  {notificationPermission === "granted" ? "🔔" : 
+                  {typeof Notification === 'undefined' ? "❌" :
+                   notificationPermission === "granted" ? "🔔" : 
                    notificationPermission === "denied" ? "🔕" : "🔇"}
                 </span>
                 <span className="notification-text">
-                  {notificationPermission === "granted" ? "Notifications enabled" : 
+                  {typeof Notification === 'undefined' ? "Notifications not supported" :
+                   notificationPermission === "granted" ? "Notifications enabled" : 
                    notificationPermission === "denied" ? "Notifications blocked" : "Notifications disabled"}
                 </span>
               </div>
-              {notificationPermission === "default" && (
+              {typeof Notification !== 'undefined' && notificationPermission === "default" && (
                 <button 
                   className="notification-btn"
                   onClick={requestNotificationPermission}
@@ -599,13 +720,57 @@ function App() {
                   Enable Notifications
                 </button>
               )}
-              {notificationPermission === "denied" && (
+              {typeof Notification !== 'undefined' && notificationPermission === "denied" && (
                 <div className="notification-help">
                   <small>Check browser settings to enable notifications</small>
                 </div>
               )}
+              {typeof Notification === 'undefined' && (
+                <div className="notification-help">
+                  <small>Your browser doesn't support notifications</small>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Push Notification Settings */}
+          {isPushSupported && (
+            <div className="sidebar-section">
+              <div className="notification-settings">
+                <div className="notification-status">
+                  <span className="notification-icon">
+                    {pushSubscription ? "📱" : "📱❌"}
+                  </span>
+                  <span className="notification-text">
+                    {pushSubscription ? "Push notifications enabled" : "Push notifications disabled"}
+                  </span>
+                </div>
+                {!pushSubscription && notificationPermission === "granted" && (
+                  <button 
+                    className="notification-btn"
+                    onClick={subscribeToPushNotifications}
+                    title="Enable push notifications for offline messages"
+                  >
+                    Enable Push Notifications
+                  </button>
+                )}
+                {pushSubscription && (
+                  <button 
+                    className="notification-btn"
+                    onClick={unsubscribeFromPushNotifications}
+                    title="Disable push notifications"
+                  >
+                    Disable Push Notifications
+                  </button>
+                )}
+                {!isPushSupported && (
+                  <div className="notification-help">
+                    <small>Push notifications not supported in this browser</small>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Database Cleanup - Hidden for production */}
           {/* <div className="sidebar-section">

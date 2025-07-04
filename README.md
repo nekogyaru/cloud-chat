@@ -11,6 +11,8 @@ A modern, real-time chat application built with React, PartyKit, and Cloudflare 
 - **Mobile Responsive**: Optimized for both desktop and mobile devices
 - **Session Management**: Persistent user sessions with unique usernames
 - **Modern UI**: Clean, intuitive interface with responsive design
+- **Push Notifications**: Receive notifications for private messages even when offline
+- **Progressive Web App**: Installable on mobile devices with app-like experience
 
 ## Tech Stack
 
@@ -52,3 +54,27 @@ The app uses Cloudflare Durable Objects to maintain chat state and handle real-t
 - **Local Development**: `npm run dev` starts the development server on `http://localhost:8787`
 - **Build**: The client is automatically built using esbuild when running in development mode
 - **Deployment**: Use `npx wrangler deploy` to deploy to Cloudflare Workers
+
+## Push Notifications Setup
+
+To enable push notifications:
+
+1. **Generate VAPID Keys**:
+   ```bash
+   node scripts/generate-vapid-keys.js
+   ```
+
+2. **Update Environment Variables**:
+   Add the generated keys to your Cloudflare Workers environment variables:
+   - `VAPID_PUBLIC_KEY`
+   - `VAPID_PRIVATE_KEY`
+
+3. **Update Client Code**:
+   Replace `YOUR_VAPID_PUBLIC_KEY` in `src/client/index.tsx` with your actual public key.
+
+4. **Deploy**:
+   ```bash
+   npx wrangler deploy
+   ```
+
+**Note**: Push notifications require HTTPS (provided by Cloudflare Workers) and are supported in Chrome, Firefox, and Safari on mobile devices.

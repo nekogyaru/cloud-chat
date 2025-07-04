@@ -1,0 +1,49 @@
+{
+  "name": "CloudChat",
+  "short_name": "CloudChat",
+  "description": "Real-time messaging with public channels and private messaging",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0088cc",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "32x32",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "192x192",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "512x512",
+      "type": "image/x-icon",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["social", "communication"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Join General",
+      "short_name": "General",
+      "description": "Join the general channel",
+      "url": "/?channel=general",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    },
+    {
+      "name": "Private Messages",
+      "short_name": "Private",
+      "description": "View private messages",
+      "url": "/?view=private",
+      "icons": [{ "src": "/favicon.ico", "sizes": "96x96" }]
+    }
+  ]
+} 

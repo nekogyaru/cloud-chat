@@ -1,3 +1,14 @@
+// PushSubscription type for TypeScript
+interface PushSubscription {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+  toJSON(): any;
+  unsubscribe(): Promise<boolean>;
+}
+
 export type ChatMessage = {
   id: string;
   content: string;
@@ -157,6 +168,15 @@ export type Message =
   | {
       type: "message_too_long";
       message: string;
+    }
+  | {
+      type: "push_subscription";
+      subscription: PushSubscription;
+      sessionId: string;
+    }
+  | {
+      type: "push_unsubscription";
+      sessionId: string;
     };
 
 export type UserInfo = {

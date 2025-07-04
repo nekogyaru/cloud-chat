@@ -22,6 +22,7 @@ export class Chat extends Server<Env> {
   pendingPrivateMessages: any[] = []; // Store private messages to load after users
   unreadCounts = new Map<string, Map<string, number>>(); // sessionId -> chatId -> unreadCount
   lastReadTimes = new Map<string, Map<string, number>>(); // sessionId -> chatId -> lastReadTime
+  pushSubscriptions = new Map<string, any>(); // sessionId -> PushSubscription
 
   broadcastMessage(message: Message, exclude?: string[]) {
     // If this is a users_list, hide anon users completely
@@ -1308,6 +1309,14 @@ export class Chat extends Server<Env> {
         };
         this.saveMessage(chatMessage);
       }
+    } else if (parsed.type === "push_subscription") {
+      // Handle push subscription
+      this.pushSubscriptions.set(parsed.sessionId, parsed.subscription);
+      console.log(`Push subscription saved for session: ${parsed.sessionId}`);
+    } else if (parsed.type === "push_unsubscription") {
+      // Handle push unsubscription
+      this.pushSubscriptions.delete(parsed.sessionId);
+      console.log(`Push subscription removed for session: ${parsed.sessionId}`);
     }
   }
 }
