@@ -1,6 +1,6 @@
-# Telegram-Style Chat App
+# CloudChat
 
-A modern, real-time chat application built with React, PartyKit, and Cloudflare Durable Objects. Features a Telegram-inspired UI with public channels, private messaging, and anonymous chat support.
+A modern, real-time chat application built with React, PartyKit, and Cloudflare Durable Objects. Features a clean, intuitive UI with public channels, private messaging, and anonymous chat support.
 
 ## Features
 
@@ -10,7 +10,7 @@ A modern, real-time chat application built with React, PartyKit, and Cloudflare 
 - **Real-time Updates**: Live message delivery, user online status, and unread message counters
 - **Mobile Responsive**: Optimized for both desktop and mobile devices
 - **Session Management**: Persistent user sessions with unique usernames
-- **Modern UI**: Clean, intuitive interface inspired by Telegram
+- **Modern UI**: Clean, intuitive interface with responsive design
 
 ## Tech Stack
 

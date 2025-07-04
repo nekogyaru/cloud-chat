@@ -4,13 +4,15 @@
     <!-- Basic Page Needs
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
     <meta charset="utf-8" />
-    <title>Telegram-like Chat</title>
+    <title>CloudChat</title>
     <meta name="description" content="Real-time chat powered by Cloudflare Workers and Durable Objects" />
     <meta name="author" content="" />
 
     <!-- Mobile Specific Metas
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
 
     <!-- FONT
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
@@ -28,7 +30,13 @@
   <body>
     <!-- Primary Page Layout
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback content in case JavaScript doesn't load -->
+      <div style="padding: 2rem; text-align: center;">
+        <h2>Loading CloudChat...</h2>
+        <p>If this message doesn't disappear, please check your internet connection and refresh the page.</p>
+      </div>
+    </div>
 
     <!-- End Document
   –––––––––––––––––––––––––––––––––––––––––––––––––– -->

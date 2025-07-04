@@ -1,10 +1,12 @@
-import React from "react";
+import React, { Component } from "react";
 import { createRoot } from "react-dom/client";
 import { usePartySocket } from "partysocket/react";
 import { useState, useEffect, useRef } from "react";
 import type { ChatMessage, Message, UserInfo, SessionInfo, PublicChannel, PrivateChatInfo } from "../shared";
 
 function App() {
+  console.log("App component rendering...");
+  
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [users, setUsers] = useState<UserInfo[]>([]);
@@ -193,18 +195,30 @@ function App() {
       } else if (message.type === "private_chats_list" && "chats" in message) {
         // Handle private chats list update
         setPrivateChats(message.chats);
+      } else if (message.type === "message_too_long") {
+        // Handle message too long error
+        alert(message.message);
       }
     },
   });
 
   useEffect(() => {
+    console.log("Initializing app...");
     // Check if user exists in localStorage
     const savedUser = localStorage.getItem("chatUser");
+    console.log("Saved user:", savedUser);
     if (savedUser) {
-      const user = JSON.parse(savedUser) as SessionInfo;
-      setCurrentUser(user);
-      setShowNamePrompt(false);
+      try {
+        const user = JSON.parse(savedUser) as SessionInfo;
+        console.log("Setting current user:", user);
+        setCurrentUser(user);
+        setShowNamePrompt(false);
+      } catch (error) {
+        console.error("Error parsing saved user:", error);
+        setShowNamePrompt(true);
+      }
     } else {
+      console.log("No saved user, showing name prompt");
       setShowNamePrompt(true);
     }
   }, []);
@@ -223,10 +237,14 @@ function App() {
 
   // Generate or retrieve session ID
   useEffect(() => {
+    console.log("Setting up session ID...");
     let storedSessionId = localStorage.getItem("chatSessionId");
     if (!storedSessionId) {
       storedSessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       localStorage.setItem("chatSessionId", storedSessionId);
+      console.log("Generated new session ID:", storedSessionId);
+    } else {
+      console.log("Using existing session ID:", storedSessionId);
     }
     setSessionId(storedSessionId);
   }, []);
@@ -293,13 +311,20 @@ function App() {
   };
 
   const handleSendMessage = () => {
-    if (!inputValue.trim() || !currentUser || !socket) return;
+    const trimmedContent = inputValue.trim();
+    if (!trimmedContent || !currentUser || !socket) return;
+    
+    // Check message length limit (3000 characters)
+    if (trimmedContent.length > 3000) {
+      alert("Message is too long. Please keep messages under 3,000 characters.");
+      return;
+    }
     
     const messageId = `msg_${Date.now()}_${Math.random()}`;
     const message: Message = {
       type: "add",
       id: messageId,
-      content: inputValue.trim(),
+      content: trimmedContent,
       user: currentUser.displayName,
       role: "user",
       channelId: currentChannel || undefined,
@@ -451,7 +476,7 @@ function App() {
     return (
       <div className="name-prompt-overlay">
         <div className="name-prompt-modal">
-          <h2>Welcome to Chat!</h2>
+          <h2>Welcome to CloudChat!</h2>
           <p>Enter your name to get started:</p>
           <input
             ref={nameInputRef}
@@ -479,6 +504,22 @@ function App() {
       </div>
     );
   }
+
+  // Add a fallback for when the app is loading or there's an error
+  if (!currentUser) {
+    console.log("No current user, showing loading state");
+    return (
+      <div className="app">
+        <div className="loading-state">
+          <h2>Loading...</h2>
+          <p>Please wait while we connect to the chat server.</p>
+          <p>Debug: showNamePrompt = {showNamePrompt.toString()}</p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log("Rendering main app with user:", currentUser.displayName);
 
   return (
     <div className="app">
@@ -763,13 +804,19 @@ function App() {
 
             {/* Input */}
             <div className="input-container">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type a message..."
-                rows={1}
-              />
+              <div className="input-wrapper">
+                <textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type a message..."
+                  rows={1}
+                  maxLength={3000}
+                />
+                <div className="char-counter">
+                  {inputValue.length}/3000
+                </div>
+              </div>
               <button onClick={handleSendMessage} disabled={!inputValue.trim()}>
                 Send
               </button>
@@ -820,13 +867,19 @@ function App() {
 
             {/* Input */}
             <div className="input-container">
-              <textarea
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Type a private message..."
-                rows={1}
-              />
+              <div className="input-wrapper">
+                <textarea
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Type a private message..."
+                  rows={1}
+                  maxLength={3000}
+                />
+                <div className="char-counter">
+                  {inputValue.length}/3000
+                </div>
+              </div>
               <button onClick={handleSendMessage} disabled={!inputValue.trim()}>
                 Send
               </button>
@@ -835,9 +888,9 @@ function App() {
         ) : (
           /* Empty State */
           <div className="empty-chat">
-            <div className="empty-content">
-              <h2>Welcome to Chat!</h2>
-              <p>Join a public channel to start chatting with others.</p>
+                      <div className="empty-content">
+            <h2>Welcome to CloudChat!</h2>
+            <p>Join a public channel to start chatting with others.</p>
               <div className="empty-actions">
                 <button 
                   className="join-public-btn"
@@ -866,8 +919,50 @@ function App() {
   );
 }
 
-// Render the app
-const root = createRoot(document.getElementById("root")!);
-root.render(<App />);
+// Error boundary for debugging
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error?: Error }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("App error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '2rem', textAlign: 'center' }}>
+          <h2>Something went wrong</h2>
+          <p>Error: {this.state.error?.message}</p>
+          <button onClick={() => window.location.reload()}>Reload Page</button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Render the app with error boundary
+const rootElement = document.getElementById("root");
+if (rootElement) {
+  const root = createRoot(rootElement);
+  root.render(
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
+  );
+} else {
+  console.error("Root element not found!");
+}
 
 export default App;

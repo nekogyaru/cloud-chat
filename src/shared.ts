@@ -153,6 +153,10 @@ export type Message =
   | {
       type: "private_chats_list";
       chats: PrivateChatInfo[];
+    }
+  | {
+      type: "message_too_long";
+      message: string;
     };
 
 export type UserInfo = {

@@ -1184,6 +1184,15 @@ export class Chat extends Server<Env> {
         return;
       }
 
+      // Validate message length (3000 characters max)
+      if (parsed.content && parsed.content.length > 3000) {
+        connection.send(JSON.stringify({
+          type: "message_too_long",
+          message: "Message is too long. Please keep messages under 3,000 characters.",
+        }));
+        return;
+      }
+
       // Add timestamp to message
       const messageWithTimestamp = {
         ...parsed,

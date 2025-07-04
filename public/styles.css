@@ -445,20 +445,38 @@ body {
   align-items: flex-end;
 }
 
-.input-container textarea {
+.input-wrapper {
   flex: 1;
+  position: relative;
+}
+
+.input-container textarea {
+  width: 100%;
   border: 1px solid #ddd;
   border-radius: 20px;
   padding: 0.75rem 1rem;
+  padding-bottom: 2rem;
   font-size: 0.875rem;
   resize: none;
   max-height: 120px;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .input-container textarea:focus {
   outline: none;
   border-color: #0088cc;
+}
+
+.char-counter {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 1rem;
+  font-size: 0.75rem;
+  color: #666;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.125rem 0.25rem;
+  border-radius: 4px;
 }
 
 .input-container button {
@@ -684,6 +702,13 @@ body {
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
+  .app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
   .sidebar {
     position: fixed;
     top: 0;
@@ -691,6 +716,7 @@ body {
     height: 100vh;
     z-index: 1001;
     transition: left 0.3s ease;
+    width: 280px;
   }
 
   .sidebar.open {
@@ -698,7 +724,11 @@ body {
   }
 
   .mobile-menu-button {
-    display: block;
+    display: block !important;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1002;
   }
 
   .close-sidebar {
@@ -717,6 +747,10 @@ body {
 
   .chat-container {
     margin-left: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
 
   .message {
@@ -735,6 +769,34 @@ body {
     margin: 1rem;
     padding: 1.5rem;
   }
+
+  .empty-chat {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  padding: 2rem;
+}
+
+.loading-state h2 {
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+.loading-state p {
+  color: #666;
+  font-size: 1rem;
 }
 
 /* iOS keyboard send button support */

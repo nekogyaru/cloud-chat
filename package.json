@@ -1,8 +1,8 @@
 {
-  "name": "durable-chat-template",
-  "description": "Chat with other users in real-time using Durable Objects and PartyKit.",
+  "name": "cloudchat",
+  "description": "CloudChat - Real-time messaging with public channels and private messaging using Durable Objects and PartyKit.",
   "cloudflare": {
-    "label": "Durable Chat App",
+    "label": "CloudChat",
     "products": [
       "Workers",
       "Durable Objects"
