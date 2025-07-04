@@ -50,6 +50,8 @@ body {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-header {
@@ -946,4 +948,69 @@ body {
 
 .channel-item .unread-badge {
   margin-left: auto;
+}
+
+/* Slim Notification Bar */
+.notification-bar {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.notification-toggle,
+.push-toggle {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e9ecef;
+  color: #6c757d;
+}
+
+.notification-toggle:hover,
+.push-toggle:hover {
+  transform: scale(1.05);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.notification-toggle.enabled,
+.push-toggle.enabled {
+  background: #28a745;
+  color: white;
+}
+
+.notification-toggle.disabled,
+.push-toggle.disabled {
+  background: #e9ecef;
+  color: #6c757d;
+}
+
+.notification-toggle:active,
+.push-toggle:active {
+  transform: scale(0.95);
+}
+
+/* Mobile responsive for notification bar */
+@media (max-width: 768px) {
+  .notification-bar {
+    padding: 0.5rem;
+    gap: 0.25rem;
+  }
+  
+  .notification-toggle,
+  .push-toggle {
+    width: 36px;
+    height: 36px;
+    font-size: 1.1rem;
+  }
 }
