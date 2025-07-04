@@ -189,22 +189,33 @@ function ChatPreview({ chat, isActive }: { chat: typeof exampleChats[0]; isActiv
   );
 }
 
-function Sidebar({ displayName, onNameChange }: { 
+function Sidebar({ displayName, onNameChange, isMobileOpen, onClose }: { 
   displayName: string; 
   onNameChange: (name: string) => void;
+  isMobileOpen?: boolean;
+  onClose?: () => void;
 }) {
   return (
-    <div className="sidebar">
+    <div className={`sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-title">
           <span className="sidebar-icon">💬</span>
           Chats
         </div>
-        <button className="new-chat-button">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-          </svg>
-        </button>
+        <div className="sidebar-header-actions">
+          <button className="new-chat-button">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+            </svg>
+          </button>
+          {isMobileOpen && (
+            <button className="close-sidebar-button" onClick={onClose}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+              </svg>
+            </button>
+          )}
+        </div>
       </div>
       
       <div className="sidebar-search">
@@ -248,15 +259,24 @@ function MessageBubble({ message, isOwn }: { message: ChatMessage; isOwn: boolea
   );
 }
 
-function ChatHeader({ room }: { room: string }) {
+function ChatHeader({ room, onMenuClick }: { room: string; onMenuClick?: () => void }) {
   return (
     <div className="chat-header">
       <div className="chat-header-content">
-        <div className="chat-title">
-          <span className="chat-icon">💬</span>
-          Room #{room.slice(0, 8)}
+        {onMenuClick && (
+          <button className="mobile-menu-button" onClick={onMenuClick}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+            </svg>
+          </button>
+        )}
+        <div className="chat-header-info">
+          <div className="chat-title">
+            <span className="chat-icon">💬</span>
+            Room #{room.slice(0, 8)}
+          </div>
+          <div className="chat-subtitle">Share this link to invite others</div>
         </div>
-        <div className="chat-subtitle">Share this link to invite others</div>
       </div>
     </div>
   );
@@ -296,6 +316,7 @@ function ChatInput({ onSendMessage, placeholder }: {
           className="chat-input"
           placeholder={placeholder}
           autoComplete="off"
+          enterKeyHint="send"
         />
         <button 
           type="submit" 
@@ -311,7 +332,7 @@ function ChatInput({ onSendMessage, placeholder }: {
   );
 }
 
-function ChatArea({ displayName }: { displayName: string }) {
+function ChatArea({ displayName, onMenuClick }: { displayName: string; onMenuClick?: () => void }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -395,7 +416,7 @@ function ChatArea({ displayName }: { displayName: string }) {
 
   return (
     <div className="chat-area">
-      <ChatHeader room={room || ''} />
+      <ChatHeader room={room || ''} onMenuClick={onMenuClick} />
       
       <div className="messages-container">
         {messages.length === 0 ? (
@@ -447,16 +468,36 @@ function ChatApp() {
     const saved = localStorage.getItem('chat-display-name');
     return saved || names[Math.floor(Math.random() * names.length)];
   });
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleNameChange = (newName: string) => {
     setDisplayName(newName);
     localStorage.setItem('chat-display-name', newName);
   };
 
+  const handleMenuClick = () => {
+    setIsMobileMenuOpen(true);
+  };
+
+  const handleCloseMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
   return (
     <div className="chat-app">
-      <Sidebar displayName={displayName} onNameChange={handleNameChange} />
-      <ChatArea displayName={displayName} />
+      <Sidebar 
+        displayName={displayName} 
+        onNameChange={handleNameChange}
+        isMobileOpen={isMobileMenuOpen}
+        onClose={handleCloseMenu}
+      />
+      <ChatArea 
+        displayName={displayName} 
+        onMenuClick={handleMenuClick}
+      />
+      {isMobileMenuOpen && (
+        <div className="mobile-overlay" onClick={handleCloseMenu} />
+      )}
     </div>
   );
 }
