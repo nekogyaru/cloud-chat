@@ -76,11 +76,16 @@ function App() {
           }
           
           // Show browser notification for private messages from others
-          if (message.user !== currentUser?.displayName && notificationPermission === "granted") {
-            showNotification(`Private message from ${message.user}`, {
-              body: message.content,
-              icon: "/favicon.ico",
-            });
+          try {
+            if (message.user !== currentUser?.displayName && notificationPermission === "granted") {
+              showNotification(`Private message from ${message.user}`, {
+                body: message.content,
+                icon: "/favicon.ico",
+              });
+            }
+          } catch (error) {
+            console.error("Error showing notification:", error);
+            // Silently fail - don't break message handling
           }
         } else {
           // Handle regular messages (channel messages)
@@ -268,12 +273,13 @@ function App() {
 
   // Helper function to safely show notifications
   const showNotification = (title: string, options?: NotificationOptions) => {
-    if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
-      try {
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
         new Notification(title, options);
-      } catch (error) {
-        console.error("Failed to show notification:", error);
       }
+    } catch (error) {
+      console.error("Failed to show notification:", error);
+      // Silently fail - don't break the app
     }
   };
 
@@ -397,10 +403,15 @@ function App() {
         setNotificationPermission(permission);
         if (permission === "granted") {
           // Show a test notification to confirm it's working
-          showNotification("Notifications enabled!", {
-            body: "You'll now receive notifications for private messages.",
-            icon: "/favicon.ico",
-          });
+          try {
+            showNotification("Notifications enabled!", {
+              body: "You'll now receive notifications for private messages.",
+              icon: "/favicon.ico",
+            });
+          } catch (notifError) {
+            console.error("Failed to show test notification:", notifError);
+            // Don't break the permission flow
+          }
         }
       }
     } catch (error) {
@@ -711,82 +722,6 @@ function App() {
             </div>
           </div>
 
-          {/* Notification Settings */}
-          <div className="sidebar-section">
-            <div className="notification-settings">
-              <div className="notification-status">
-                <span className="notification-icon">
-                  {typeof Notification === 'undefined' ? "❌" :
-                   notificationPermission === "granted" ? "🔔" : 
-                   notificationPermission === "denied" ? "🔕" : "🔇"}
-                </span>
-                <span className="notification-text">
-                  {typeof Notification === 'undefined' ? "Notifications not supported" :
-                   notificationPermission === "granted" ? "Notifications enabled" : 
-                   notificationPermission === "denied" ? "Notifications blocked" : "Notifications disabled"}
-                </span>
-              </div>
-              {typeof Notification !== 'undefined' && notificationPermission === "default" && (
-                <button 
-                  className="notification-btn"
-                  onClick={requestNotificationPermission}
-                  title="Enable notifications for private messages"
-                >
-                  Enable Notifications
-                </button>
-              )}
-              {typeof Notification !== 'undefined' && notificationPermission === "denied" && (
-                <div className="notification-help">
-                  <small>Check browser settings to enable notifications</small>
-                </div>
-              )}
-              {typeof Notification === 'undefined' && (
-                <div className="notification-help">
-                  <small>Your browser doesn't support notifications</small>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Push Notification Settings */}
-          {isPushSupported && (
-            <div className="sidebar-section">
-              <div className="notification-settings">
-                <div className="notification-status">
-                  <span className="notification-icon">
-                    {pushSubscription ? "📱" : "📱❌"}
-                  </span>
-                  <span className="notification-text">
-                    {pushSubscription ? "Push notifications enabled" : "Push notifications disabled"}
-                  </span>
-                </div>
-                {!pushSubscription && notificationPermission === "granted" && (
-                  <button 
-                    className="notification-btn"
-                    onClick={subscribeToPushNotifications}
-                    title="Enable push notifications for offline messages"
-                  >
-                    Enable Push Notifications
-                  </button>
-                )}
-                {pushSubscription && (
-                  <button 
-                    className="notification-btn"
-                    onClick={unsubscribeFromPushNotifications}
-                    title="Disable push notifications"
-                  >
-                    Disable Push Notifications
-                  </button>
-                )}
-                {!isPushSupported && (
-                  <div className="notification-help">
-                    <small>Push notifications not supported in this browser</small>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Database Cleanup - Hidden for production */}
           {/* <div className="sidebar-section">
             <button 
@@ -926,6 +861,82 @@ function App() {
                 ))}
             </div>
           </div>
+
+          {/* Notification Settings - Bottom of Sidebar */}
+          <div className="sidebar-section">
+            <div className="notification-settings">
+              <div className="notification-status">
+                <span className="notification-icon">
+                  {typeof Notification === 'undefined' ? "❌" :
+                   notificationPermission === "granted" ? "🔔" : 
+                   notificationPermission === "denied" ? "🔕" : "🔇"}
+                </span>
+                <span className="notification-text">
+                  {typeof Notification === 'undefined' ? "Notifications not supported" :
+                   notificationPermission === "granted" ? "Notifications enabled" : 
+                   notificationPermission === "denied" ? "Notifications blocked" : "Notifications disabled"}
+                </span>
+              </div>
+              {typeof Notification !== 'undefined' && notificationPermission === "default" && (
+                <button 
+                  className="notification-btn"
+                  onClick={requestNotificationPermission}
+                  title="Enable notifications for private messages"
+                >
+                  Enable Notifications
+                </button>
+              )}
+              {typeof Notification !== 'undefined' && notificationPermission === "denied" && (
+                <div className="notification-help">
+                  <small>Check browser settings to enable notifications</small>
+                </div>
+              )}
+              {typeof Notification === 'undefined' && (
+                <div className="notification-help">
+                  <small>Your browser doesn't support notifications</small>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Push Notification Settings - Bottom of Sidebar */}
+          {isPushSupported && (
+            <div className="sidebar-section">
+              <div className="notification-settings">
+                <div className="notification-status">
+                  <span className="notification-icon">
+                    {pushSubscription ? "📱" : "📱❌"}
+                  </span>
+                  <span className="notification-text">
+                    {pushSubscription ? "Push notifications enabled" : "Push notifications disabled"}
+                  </span>
+                </div>
+                {!pushSubscription && notificationPermission === "granted" && (
+                  <button 
+                    className="notification-btn"
+                    onClick={subscribeToPushNotifications}
+                    title="Enable push notifications for offline messages"
+                  >
+                    Enable Push Notifications
+                  </button>
+                )}
+                {pushSubscription && (
+                  <button 
+                    className="notification-btn"
+                    onClick={unsubscribeFromPushNotifications}
+                    title="Disable push notifications"
+                  >
+                    Disable Push Notifications
+                  </button>
+                )}
+                {!isPushSupported && (
+                  <div className="notification-help">
+                    <small>Push notifications not supported in this browser</small>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
