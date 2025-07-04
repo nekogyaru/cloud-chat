@@ -23,7 +23,17 @@ function App() {
   const [sessionId, setSessionId] = useState<string>("");
   const [privateChats, setPrivateChats] = useState<PrivateChatInfo[]>([]);
   const [unreadCounts, setUnreadCounts] = useState<Map<string, number>>(new Map());
-  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(Notification.permission);
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() => {
+    // Safely check notification permission on initialization
+    try {
+      if (typeof Notification !== 'undefined') {
+        return Notification.permission;
+      }
+    } catch (error) {
+      console.error('Error checking notification permission:', error);
+    }
+    return "denied";
+  });
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const hasReleasedName = useRef<boolean>(false);
@@ -274,13 +284,18 @@ function App() {
   // Check if push notifications are supported
   useEffect(() => {
     const checkPushSupport = async () => {
-      if ('serviceWorker' in navigator && 'PushManager' in window) {
-        setIsPushSupported(true);
-        
-        // Check if we already have a subscription
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        setPushSubscription(subscription);
+      try {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          setIsPushSupported(true);
+          
+          // Check if we already have a subscription
+          const registration = await navigator.serviceWorker.ready;
+          const subscription = await registration.pushManager.getSubscription();
+          setPushSubscription(subscription);
+        }
+      } catch (error) {
+        console.error('Error checking push support:', error);
+        setIsPushSupported(false);
       }
     };
     
@@ -298,7 +313,7 @@ function App() {
       const registration = await navigator.serviceWorker.ready;
       
       // Request notification permission first
-      if (Notification.permission !== 'granted') {
+      if (typeof Notification !== 'undefined' && Notification.permission !== 'granted') {
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
           alert('Notification permission is required for push notifications');
@@ -370,14 +385,14 @@ function App() {
 
   // Request notification permission on first user interaction
   const requestNotificationPermission = async () => {
-    if (typeof Notification === 'undefined') {
-      console.log("Notifications not supported in this browser");
-      setNotificationPermission("denied");
-      return;
-    }
+    try {
+      if (typeof Notification === 'undefined') {
+        console.log("Notifications not supported in this browser");
+        setNotificationPermission("denied");
+        return;
+      }
 
-    if (Notification.permission === "default") {
-      try {
+      if (Notification.permission === "default") {
         const permission = await Notification.requestPermission();
         setNotificationPermission(permission);
         if (permission === "granted") {
@@ -387,10 +402,10 @@ function App() {
             icon: "/favicon.ico",
           });
         }
-      } catch (error) {
-        console.error("Failed to request notification permission:", error);
-        setNotificationPermission("denied");
       }
+    } catch (error) {
+      console.error("Failed to request notification permission:", error);
+      setNotificationPermission("denied");
     }
   };
 
