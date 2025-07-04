@@ -26,7 +26,7 @@ function App() {
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() => {
     // Safely check notification permission on initialization
     try {
-      if (typeof Notification !== 'undefined') {
+      if (typeof Notification !== 'undefined' && 'permission' in Notification) {
         return Notification.permission;
       }
     } catch (error) {
@@ -274,8 +274,31 @@ function App() {
   // Helper function to safely show notifications
   const showNotification = (title: string, options?: NotificationOptions) => {
     try {
-      if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
-        new Notification(title, options);
+      // Check if we're in a secure context (required for notifications)
+      if (!isSecureContext) {
+        console.log('Notifications require a secure context (HTTPS)');
+        return;
+      }
+      
+      if (typeof Notification !== 'undefined' && 'permission' in Notification && Notification.permission === "granted") {
+        // Create notification with error handling
+        const notification = new Notification(title, {
+          ...options,
+          requireInteraction: false,
+          silent: false,
+          tag: 'cloudchat-message'
+        });
+        
+        // Handle notification click
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+        
+        // Auto-close after 5 seconds
+        setTimeout(() => {
+          notification.close();
+        }, 5000);
       }
     } catch (error) {
       console.error("Failed to show notification:", error);
@@ -286,11 +309,22 @@ function App() {
   // Push notification subscription state
   const [pushSubscription, setPushSubscription] = useState<PushSubscription | null>(null);
   const [isPushSupported, setIsPushSupported] = useState(false);
+  const [isSecureContext, setIsSecureContext] = useState(false);
 
-  // Check if push notifications are supported
+  // Check secure context and push notifications support
   useEffect(() => {
+    // Check secure context
+    setIsSecureContext(window.isSecureContext);
+    
     const checkPushSupport = async () => {
       try {
+        // Check for secure context first
+        if (!isSecureContext) {
+          console.log('Push notifications require HTTPS');
+          setIsPushSupported(false);
+          return;
+        }
+        
         if ('serviceWorker' in navigator && 'PushManager' in window) {
           setIsPushSupported(true);
           
@@ -298,6 +332,8 @@ function App() {
           const registration = await navigator.serviceWorker.ready;
           const subscription = await registration.pushManager.getSubscription();
           setPushSubscription(subscription);
+        } else {
+          setIsPushSupported(false);
         }
       } catch (error) {
         console.error('Error checking push support:', error);
@@ -392,15 +428,41 @@ function App() {
   // Request notification permission on first user interaction
   const requestNotificationPermission = async () => {
     try {
+      // Check if we're in a secure context
+      if (!isSecureContext) {
+        console.log('Notifications require a secure context (HTTPS)');
+        alert('Notifications require a secure connection (HTTPS). Please use HTTPS to enable notifications.');
+        setNotificationPermission("denied");
+        return;
+      }
+      
       if (typeof Notification === 'undefined') {
         console.log("Notifications not supported in this browser");
         setNotificationPermission("denied");
         return;
       }
 
+      // Check if permission is already granted
+      if (Notification.permission === "granted") {
+        setNotificationPermission("granted");
+        return;
+      }
+
+      // Check if permission is denied
+      if (Notification.permission === "denied") {
+        console.log("Notification permission denied by user");
+        setNotificationPermission("denied");
+        alert('Notification permission was denied. Please enable notifications in your browser settings to receive message alerts.');
+        return;
+      }
+
+      // Request permission (only works in "default" state)
       if (Notification.permission === "default") {
+        console.log("Requesting notification permission...");
         const permission = await Notification.requestPermission();
+        console.log("Permission result:", permission);
         setNotificationPermission(permission);
+        
         if (permission === "granted") {
           // Show a test notification to confirm it's working
           try {
@@ -412,11 +474,14 @@ function App() {
             console.error("Failed to show test notification:", notifError);
             // Don't break the permission flow
           }
+        } else if (permission === "denied") {
+          alert('Notification permission was denied. You can enable notifications later in your browser settings.');
         }
       }
     } catch (error) {
       console.error("Failed to request notification permission:", error);
       setNotificationPermission("denied");
+      alert('Failed to request notification permission. Please check your browser settings.');
     }
   };
 
@@ -867,12 +932,14 @@ function App() {
             <div className="notification-settings">
               <div className="notification-status">
                 <span className="notification-icon">
-                  {typeof Notification === 'undefined' ? "❌" :
+                  {!isSecureContext ? "🔒" :
+                   typeof Notification === 'undefined' ? "❌" :
                    notificationPermission === "granted" ? "🔔" : 
                    notificationPermission === "denied" ? "🔕" : "🔇"}
                 </span>
                 <span className="notification-text">
-                  {typeof Notification === 'undefined' ? "Notifications not supported" :
+                  {!isSecureContext ? "HTTPS required" :
+                   typeof Notification === 'undefined' ? "Notifications not supported" :
                    notificationPermission === "granted" ? "Notifications enabled" : 
                    notificationPermission === "denied" ? "Notifications blocked" : "Notifications disabled"}
                 </span>
@@ -888,12 +955,24 @@ function App() {
               )}
               {typeof Notification !== 'undefined' && notificationPermission === "denied" && (
                 <div className="notification-help">
-                  <small>Check browser settings to enable notifications</small>
+                  <small>
+                    {isSecureContext ? 
+                      "Check browser settings to enable notifications" : 
+                      "Notifications require HTTPS connection"
+                    }
+                  </small>
                 </div>
               )}
               {typeof Notification === 'undefined' && (
                 <div className="notification-help">
                   <small>Your browser doesn't support notifications</small>
+                </div>
+              )}
+              {!isSecureContext && (
+                <div className="notification-help">
+                  <small style={{color: '#dc3545'}}>
+                    ⚠️ Notifications require HTTPS
+                  </small>
                 </div>
               )}
             </div>
@@ -905,13 +984,15 @@ function App() {
               <div className="notification-settings">
                 <div className="notification-status">
                   <span className="notification-icon">
-                    {pushSubscription ? "📱" : "📱❌"}
+                    {!isSecureContext ? "🔒" :
+                     pushSubscription ? "📱" : "📱❌"}
                   </span>
                   <span className="notification-text">
-                    {pushSubscription ? "Push notifications enabled" : "Push notifications disabled"}
+                    {!isSecureContext ? "HTTPS required" :
+                     pushSubscription ? "Push notifications enabled" : "Push notifications disabled"}
                   </span>
                 </div>
-                {!pushSubscription && notificationPermission === "granted" && (
+                {!pushSubscription && notificationPermission === "granted" && isSecureContext && (
                   <button 
                     className="notification-btn"
                     onClick={subscribeToPushNotifications}
