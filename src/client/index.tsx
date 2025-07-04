@@ -71,24 +71,27 @@ function App() {
             });
           }
         } else {
-          // Handle regular messages
-          setMessages((prev) => {
-            const existingIndex = prev.findIndex((m) => m.id === message.id);
-            const timestamp = (message as any).timestamp || Date.now();
-            if (existingIndex >= 0) {
-              const newMessages = [...prev];
-              newMessages[existingIndex] = {
-                ...message,
-                timestamp,
-              };
-              return newMessages;
-            } else {
-              return [...prev, { 
-                ...message, 
-                timestamp
-              }];
-            }
-          });
+          // Handle regular messages (channel messages)
+          // Only add message if we're currently in this specific channel
+          if (message.channelId && currentChannel === message.channelId) {
+            setMessages((prev) => {
+              const existingIndex = prev.findIndex((m) => m.id === message.id);
+              const timestamp = (message as any).timestamp || Date.now();
+              if (existingIndex >= 0) {
+                const newMessages = [...prev];
+                newMessages[existingIndex] = {
+                  ...message,
+                  timestamp,
+                };
+                return newMessages;
+              } else {
+                return [...prev, { 
+                  ...message, 
+                  timestamp
+                }];
+              }
+            });
+          }
         }
       } else if (message.type === "all") {
         if (message.channelId) {
